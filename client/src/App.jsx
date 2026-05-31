@@ -1,16 +1,27 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-
 import PublicLayout from '@/layouts/PublicLayout';
+import Home from '@/pages/(public)/Home';
+import Events from '@/pages/(public)/Events';
 import AuthLayout from '@/layouts/AuthLayout';
+import LoginPage from '@/pages/(auth)/Login/LoginPage';
+import RegisterPage from '@/pages/(auth)/Register/RegisterPage';
+import VerifyEmailPage from '@/pages/(auth)/VerifyEmail/VerifyEmailPage';
+import ForgotPasswordPage from '@/pages/(auth)/ForgotPassword/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/(auth)/ResetPassword/ResetPasswordPage';
+import Blog from './pages/(public)/Blog';
+import BlogDetail from './pages/(public)/Blog/BlogDetail';
+import EventDetail from './pages/(public)/Events/EventDetail';
+import Contact from './pages/(public)/Contact';
+import Search from './pages/(public)/Search';
+import Booking from './pages/(public)/Booking';
+import Payment from './pages/(public)/Payment';
+import PaymentFailedPage from './pages/(public)/PaymentFailed';
+import PaymentQrPage from './pages/(public)/PaymentQr';
+import PaymentSuccessPage from './pages/(public)/PaymentSuccess';
+import Profile from './pages/(public)/Profile';
 import AdminLayout from '@/layouts/AdminLayout';
-
 import AuthGuestRoute from '@/routes/AuthGuestRoute';
 import ProtectedRoute from '@/routes/ProtectedRoute';
-
-import Home from '@/pages/(public)/Home';
-import LoginPage from '@/pages/(auth)/Login/LoginPage';
-import Dashboard from '@/pages/(admin)/Dashboard';
-
 import Dashboard from '@/pages/(admin)/Dashboard';
 import AdminEvents from '@/pages/(admin)/Events';
 import CreateEvent from '@/pages/(admin)/Events/CreateEvent';
@@ -36,22 +47,13 @@ import PaymentStatus from './pages/(public)/PaymentStatus';
 import EventCheckInPage from './pages/(public)/EventCheckInPage';
 import ContactPage from './pages/(admin)/Contact';
 import AIBlogConfig from './pages/(admin)/AIBlogConfig/AIBlogConfig';
-import RegisterPage from './pages/(auth)/Register/RegisterPage';
-import VerifyEmailPage from './pages/(auth)/VerifyEmail/VerifyEmailPage';
-import ForgotPasswordPage from './pages/(auth)/ForgotPassword/ForgotPasswordPage';
-import ResetPasswordPage from './pages/(auth)/ResetPassword/ResetPasswordPage';
-import Events from './pages/(public)/Events';
-import EventDetail from './pages/(public)/Events/EventDetail';
-import Profile from './pages/(public)/Profile';
-import Blog from './pages/(public)/Blog';
-import BlogDetail from './pages/(public)/Blog/BlogDetail';
-import Contact from './pages/(public)/Contact';
-import Search from './pages/(public)/Search';
+import MyTickets from './pages/(public)/MyTickets/MyTickets';
+import AdminNotificationsPage from './pages/(admin)/Notifications/Notifications';
+import NotFound from './pages/(public)/NotFound/NotFound';
 
 function App() {
   return (
     <Routes>
-      {/* Public base */}
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<Home />} />
         <Route path="events" element={<Events />} />
@@ -61,12 +63,29 @@ function App() {
         <Route path="blog/:id" element={<BlogDetail />} />
         <Route path="contact" element={<Contact />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/booking" element={<Booking />} />
+        <Route path="/payment" element={<Payment />} />
+        <Route path="/payment/qr/:orderId" element={<PaymentQrPage />} />
+        <Route
+          path="/payment-success/:orderId"
+          element={<PaymentSuccessPage />}
+        />
+        <Route
+          path="/payment-failed/:orderId"
+          element={<PaymentFailedPage />}
+        />
+        <Route path="/payment-status" element={<PaymentStatus />} />
+        <Route path="/my-tickets" element={<MyTickets />} />
+        <Route path="/event-checkin/:id" element={<EventCheckInPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
 
-      {/* Auth redirect */}
       <Route path="/auth" element={<Navigate replace to="/login" />} />
+      <Route
+        path="/auth/register"
+        element={<Navigate replace to="/register" />}
+      />
 
-      {/* Auth base */}
       <Route element={<AuthGuestRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
@@ -77,7 +96,6 @@ function App() {
         </Route>
       </Route>
 
-      {/* Admin base */}
       <Route path="/admin" element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
@@ -110,9 +128,6 @@ function App() {
           <Route path="notifications" element={<AdminNotificationsPage />} />
         </Route>
       </Route>
-
-      {/* Fallback */}
-      <Route path="*" element={<Navigate replace to="/" />} />
     </Routes>
   );
 }
