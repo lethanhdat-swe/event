@@ -40,6 +40,13 @@ import RegisterPage from './pages/(auth)/Register/RegisterPage';
 import VerifyEmailPage from './pages/(auth)/VerifyEmail/VerifyEmailPage';
 import ForgotPasswordPage from './pages/(auth)/ForgotPassword/ForgotPasswordPage';
 import ResetPasswordPage from './pages/(auth)/ResetPassword/ResetPasswordPage';
+import Events from './pages/(public)/Events';
+import EventDetail from './pages/(public)/Events/EventDetail';
+import Profile from './pages/(public)/Profile';
+import Blog from './pages/(public)/Blog';
+import BlogDetail from './pages/(public)/Blog/BlogDetail';
+import Contact from './pages/(public)/Contact';
+import Search from './pages/(public)/Search';
 
 function App() {
   return (
@@ -47,6 +54,13 @@ function App() {
       {/* Public base */}
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<Home />} />
+        <Route path="events" element={<Events />} />
+        <Route path="events/:slug" element={<EventDetail />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="blogs" element={<Blog />} />
+        <Route path="blog/:id" element={<BlogDetail />} />
+        <Route path="contact" element={<Contact />} />
+        <Route path="/search" element={<Search />} />
       </Route>
 
       {/* Auth redirect */}
