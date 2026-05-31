@@ -36,7 +36,11 @@ router.patch(
     UserController.changeRole
 );
 
-router.get("/:id", restrictTo("ADMIN"), UserController.getUserById);
+router.get(
+    "/:id",
+    restrictTo("ADMIN"),
+    UserController.getUserById
+);
 
 router.delete(
     "/",
