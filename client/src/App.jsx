@@ -36,6 +36,10 @@ import PaymentStatus from './pages/(public)/PaymentStatus';
 import EventCheckInPage from './pages/(public)/EventCheckInPage';
 import ContactPage from './pages/(admin)/Contact';
 import AIBlogConfig from './pages/(admin)/AIBlogConfig/AIBlogConfig';
+import RegisterPage from './pages/(auth)/Register/RegisterPage';
+import VerifyEmailPage from './pages/(auth)/VerifyEmail/VerifyEmailPage';
+import ForgotPasswordPage from './pages/(auth)/ForgotPassword/ForgotPasswordPage';
+import ResetPasswordPage from './pages/(auth)/ResetPassword/ResetPasswordPage';
 
 function App() {
   return (
@@ -52,6 +56,10 @@ function App() {
       <Route element={<AuthGuestRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>
       </Route>
 

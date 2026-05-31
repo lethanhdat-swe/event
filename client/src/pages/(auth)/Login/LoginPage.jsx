@@ -147,6 +147,7 @@ function LoginPage() {
       const { idToken } = await signInWithGoogle();
 
       const body = await authService.googleLogin({ idToken });
+
       const data = getApiData(body);
 
       setAuth(data);
