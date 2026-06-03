@@ -145,10 +145,16 @@ export const adminNavSections = [
                 icon: Contact,
                 match: 'exact',
             },
+            {
+                label: 'AI chat',
+                to: '/admin/ai-chat',
+                icon: Bot,
+                match: 'exact',
+            },
         ],
     },
     {
-        title: 'Cấu hình AI blog',
+        title: 'Cấu hình AI',
         items: [
             {
                 label: 'Quản lý AI blog',
@@ -156,6 +162,12 @@ export const adminNavSections = [
                 icon: Bot,
                 match: 'exact',
             },
+            {
+                label: 'Quản lý AI chat',
+                to: '/admin/ai-chat-config',
+                icon: Bot,
+                match: 'exact',
+            }
         ],
     },
     {
@@ -244,6 +256,10 @@ export function getAdminBreadcrumbs(pathname) {
 
     if (pathname === '/admin/ai-blog-config') {
         return [{ label: 'Cấu hình AI blog' }, { label: 'Quản lý AI blog' }];
+    }
+
+    if (pathname === '/admin/ai-chat-config') {
+        return [{ label: 'Cấu hình AI chat' }, { label: 'Quản lý AI chat' }];
     }
 
     for (const section of adminNavSections) {

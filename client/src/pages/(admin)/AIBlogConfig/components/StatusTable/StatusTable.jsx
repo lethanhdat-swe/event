@@ -43,7 +43,7 @@ function StatusTable({
 
             <TableHead>Created At</TableHead>
 
-            <TableHead className="w-[180px]">
+            <TableHead className="w-45">
               Status
             </TableHead>
           </TableRow>
@@ -53,19 +53,19 @@ function StatusTable({
           {data.length > 0 ? (
             data.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="font-medium text-gray-900 max-w-[250px]">
+                <TableCell className="font-medium text-gray-900 max-w-62.5">
                   <div className="line-clamp-2">
                     {row.title}
                   </div>
                 </TableCell>
 
-                <TableCell className="text-gray-500 max-w-[500px]">
+                <TableCell className="text-gray-600 max-w-125">
                   <div className="line-clamp-2">
                     {row.description}
                   </div>
                 </TableCell>
 
-                <TableCell className="text-gray-500 whitespace-nowrap">
+                <TableCell className="text-gray-600 whitespace-nowrap">
                   {new Date(
                     row.createdAt
                   ).toLocaleDateString("vi-VN")}
@@ -82,7 +82,7 @@ function StatusTable({
             <TableRow>
               <TableCell
                 colSpan={4}
-                className="h-32 text-center text-gray-400"
+                className="h-32 text-center text-gray-600"
               >
                 Không có dữ liệu
               </TableCell>

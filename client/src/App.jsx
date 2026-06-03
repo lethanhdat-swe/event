@@ -36,8 +36,6 @@ import PaymentTransactions from '@/pages/(admin)/PaymentTransactions';
 import Tickets from '@/pages/(admin)/Tickets';
 import Coupons from '@/pages/(admin)/Coupons';
 import Blogs from '@/pages/(admin)/Blogs';
-import CreateBlog from '@/pages/(admin)/Blogs/CreateBlog';
-import EditBlog from '@/pages/(admin)/Blogs/EditBlog';
 import BlogCategories from '@/pages/(admin)/BlogCategories';
 import CheckIn from '@/pages/(admin)/CheckIn';
 import CheckInLogs from '@/pages/(admin)/CheckInLogs';
@@ -47,10 +45,15 @@ import PaymentStatus from './pages/(public)/PaymentStatus';
 import EventCheckInPage from './pages/(public)/EventCheckInPage';
 import ContactPage from './pages/(admin)/Contact';
 import AIBlogConfig from './pages/(admin)/AIBlogConfig/AIBlogConfig';
+import AIChatConfig from './pages/(admin)/AIChatConfig/AIChatConfig';
 import MyTickets from './pages/(public)/MyTickets/MyTickets';
 import AdminNotificationsPage from './pages/(admin)/Notifications/Notifications';
 import NotFound from './pages/(public)/NotFound/NotFound';
 import Refunds from './pages/(admin)/Refunds';
+import AdminAIChatPage from '@/pages/(admin)/AIChat';
+import CreateBlog from './pages/(admin)/Blogs/components/CreateBlog';
+import EditBlog from './pages/(admin)/Blogs/components/EditBlog';
+
 
 function App() {
     return (
@@ -148,6 +151,8 @@ function App() {
                     <Route path="settings" element={<Settings />} />
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="ai-blog-config" element={<AIBlogConfig />} />
+                    <Route path="ai-chat-config" element={<AIChatConfig />} />
+                    <Route path="ai-chat" element={<AdminAIChatPage />} />
                     <Route
                         path="notifications"
                         element={<AdminNotificationsPage />}

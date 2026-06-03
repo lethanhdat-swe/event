@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { Info, Loader2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { getErrorMessage } from '@/lib/http/apiError';
 import { refundService } from '@/lib/services/admin/refundService';
+import { useAuthStore } from '@/stores/authStore';
 
 const initialForm = {
     orderCode: '',
@@ -63,7 +65,7 @@ function Field({
 }) {
     return (
         <label className="block">
-            <span className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
+            <span className="mb-2 block text-sm font-medium text-(--text-primary)">
                 {label}
                 {required ? <span className="ml-1 text-red-400">*</span> : null}
             </span>
@@ -75,7 +77,7 @@ function Field({
                 readOnly={readOnly}
                 onChange={onChange}
                 placeholder={placeholder}
-                className="h-11 w-full rounded-xl border border-[var(--border-color)] bg-[var(--soft-surface-color)] px-3.5 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--muted-text)] focus:border-[var(--primary-color)] read-only:cursor-not-allowed read-only:opacity-70"
+                className="h-11 w-full rounded-xl border border-(--border-color) bg-(--soft-surface-color) px-3.5 text-sm text-(--text-primary) outline-none transition placeholder:text-(--muted-text) focus:border-(--primary-color) read-only:cursor-not-allowed read-only:opacity-70"
             />
         </label>
     );
@@ -101,6 +103,26 @@ function getRefundErrorMessage(error) {
     return errorMap[message] || message || 'Gửi yêu cầu hoàn vé thất bại.';
 }
 
+function RefundEstimateHint() {
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+    return (
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-(--border-color) bg-(--soft-surface-color) px-3 py-2">
+            <Info className="size-3.5 shrink-0 text-(--primary-color)" />
+            <p className="min-w-0 flex-1 text-xs leading-5 text-(--muted-text)">
+                Để xem tỷ lệ và số tiền hoàn dự kiến, vui lòng đăng nhập và mở
+                trang chi tiết vé từ Vé của tôi.
+            </p>
+            <Link
+                to={isAuthenticated ? '/my-tickets' : '/login'}
+                className="shrink-0 rounded-full bg-(--primary-color)/15 px-2.5 py-1 text-xs font-medium text-(--primary-color) transition hover:bg-(--primary-color)/25"
+            >
+                {isAuthenticated ? 'Vé của tôi' : 'Đăng nhập'}
+            </Link>
+        </div>
+    );
+}
+
 function RefundRequestDialog({
     open,
     onOpenChange,
@@ -110,6 +132,7 @@ function RefundRequestDialog({
 }) {
     const [form, setForm] = useState(initialForm);
     const [submitting, setSubmitting] = useState(false);
+    const hasOrder = Boolean(order);
 
     useEffect(() => {
         if (open) {
@@ -183,11 +206,12 @@ function RefundRequestDialog({
             };
 
             const result = await refundService.create(payload);
+            const refundAmount = result?.refundAmount || expectedRefundAmount;
 
             toast.success(
-                `Đã gửi yêu cầu hoàn vé. Số tiền dự kiến: ${formatCurrency(
-                    result?.refundAmount || expectedRefundAmount
-                )}`
+                refundAmount
+                    ? `Đã gửi yêu cầu hoàn vé. Số tiền dự kiến: ${formatCurrency(refundAmount)}`
+                    : 'Đã gửi yêu cầu hoàn vé.'
             );
 
             onOpenChange(false);
@@ -200,7 +224,7 @@ function RefundRequestDialog({
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6">
+        <div className="fixed inset-0 z-[10050] flex items-center justify-center px-4 py-6">
             <button
                 type="button"
                 aria-label="Đóng"
@@ -210,13 +234,13 @@ function RefundRequestDialog({
                 }}
             />
 
-            <div className="relative z-10 flex max-h-[88vh] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--surface-color)] shadow-2xl">
-                <div className="flex items-start justify-between gap-4 border-b border-[var(--border-color)] px-5 py-4">
+            <div className="relative z-10 flex max-h-[88vh] w-full max-w-225 flex-col overflow-hidden rounded-2xl border border-(--border-color) bg-(--surface-color) shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-(--border-color) px-5 py-4">
                     <div>
-                        <h3 className="text-xl font-semibold text-[var(--text-primary)]">
+                        <h3 className="text-xl font-semibold text-(--text-primary)">
                             Yêu cầu hoàn vé
                         </h3>
-                        <p className="mt-1.5 text-sm leading-5 text-[var(--muted-text)]">
+                        <p className="mt-1.5 text-sm leading-5 text-(--muted-text)">
                             Nhập thông tin đơn hàng và tài khoản ngân hàng để
                             quản trị viên xử lý hoàn tiền.
                         </p>
@@ -226,7 +250,7 @@ function RefundRequestDialog({
                         type="button"
                         disabled={submitting}
                         onClick={() => onOpenChange(false)}
-                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--muted-text)] transition hover:bg-[var(--soft-surface-color)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-(--muted-text) transition hover:bg-(--soft-surface-color) hover:text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <X className="size-5" />
                     </button>
@@ -234,40 +258,44 @@ function RefundRequestDialog({
 
                 <form
                     onSubmit={handleSubmit}
-                    className="min-h-0 flex-1 overflow-y-auto"
+                    className="flex-1 min-h-0 overflow-y-auto"
                 >
-                    <div className="space-y-5 px-5 py-5">
-                        <div className="grid gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--soft-surface-color)] p-4 sm:grid-cols-3">
-                            <div>
-                                <p className="text-xs text-[var(--muted-text)]">
-                                    Tỷ lệ hoàn
-                                </p>
-                                <p className="mt-1 text-base font-semibold text-[var(--text-primary)]">
-                                    {expectedRefundPercent || 0}%
-                                </p>
-                            </div>
+                    <div className="px-5 py-5 space-y-5">
+                        {hasOrder ? (
+                            <div className="grid gap-3 rounded-xl border border-(--border-color) bg-(--soft-surface-color) p-4 sm:grid-cols-3">
+                                <div>
+                                    <p className="text-xs text-(--muted-text)">
+                                        Tỷ lệ hoàn
+                                    </p>
+                                    <p className="mt-1 text-base font-semibold text-(--text-primary)">
+                                        {expectedRefundPercent || 0}%
+                                    </p>
+                                </div>
 
-                            <div>
-                                <p className="text-xs text-[var(--muted-text)]">
-                                    Tổng đơn
-                                </p>
-                                <p className="mt-1 text-base font-semibold text-[var(--text-primary)]">
-                                    {formatCurrency(totalAmount)}
-                                </p>
-                            </div>
+                                <div>
+                                    <p className="text-xs text-(--muted-text)">
+                                        Tổng đơn
+                                    </p>
+                                    <p className="mt-1 text-base font-semibold text-(--text-primary)">
+                                        {formatCurrency(totalAmount)}
+                                    </p>
+                                </div>
 
-                            <div>
-                                <p className="text-xs text-[var(--muted-text)]">
-                                    Dự kiến hoàn
-                                </p>
-                                <p className="mt-1 text-base font-semibold text-[var(--primary-color)]">
-                                    {formatCurrency(expectedRefundAmount)}
-                                </p>
+                                <div>
+                                    <p className="text-xs text-(--muted-text)">
+                                        Dự kiến hoàn
+                                    </p>
+                                    <p className="mt-1 text-base font-semibold text-(--primary-color)">
+                                        {formatCurrency(expectedRefundAmount)}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <RefundEstimateHint />
+                        )}
 
                         <div>
-                            <h4 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
+                            <h4 className="mb-3 text-sm font-semibold text-(--text-primary)">
                                 Thông tin đơn hàng
                             </h4>
 
@@ -277,8 +305,9 @@ function RefundRequestDialog({
                                     name="orderCode"
                                     value={form.orderCode}
                                     onChange={handleChange}
+                                    placeholder="Nhập mã đơn hàng"
                                     required
-                                    readOnly
+                                    readOnly={hasOrder}
                                 />
 
                                 <Field
@@ -312,7 +341,7 @@ function RefundRequestDialog({
                         </div>
 
                         <div>
-                            <h4 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
+                            <h4 className="mb-3 text-sm font-semibold text-(--text-primary)">
                                 Thông tin nhận tiền
                             </h4>
 
@@ -347,7 +376,7 @@ function RefundRequestDialog({
                                 </div>
 
                                 <label className="block sm:col-span-2">
-                                    <span className="mb-2 block text-sm font-medium text-[var(--text-primary)]">
+                                    <span className="mb-2 block text-sm font-medium text-(--text-primary)">
                                         Ghi chú
                                     </span>
 
@@ -357,25 +386,25 @@ function RefundRequestDialog({
                                         onChange={handleChange}
                                         rows={3}
                                         placeholder="Nhập ghi chú nếu có..."
-                                        className="w-full resize-none rounded-xl border border-[var(--border-color)] bg-[var(--soft-surface-color)] px-3.5 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--muted-text)] focus:border-[var(--primary-color)]"
+                                        className="w-full resize-none rounded-xl border border-(--border-color) bg-(--soft-surface-color) px-3.5 py-3 text-sm text-(--text-primary) outline-none transition placeholder:text-(--muted-text) focus:border-(--primary-color)"
                                     />
                                 </label>
                             </div>
                         </div>
 
-                        <p className="rounded-xl border border-[var(--border-color)] bg-[var(--soft-surface-color)] px-4 py-3 text-sm leading-5 text-[var(--muted-text)]">
+                        <p className="rounded-xl border border-(--border-color) bg-(--soft-surface-color) px-4 py-3 text-sm leading-5 text-(--muted-text)">
                             Yêu cầu hoàn vé sẽ được đưa vào hàng chờ. Quản trị
                             viên sẽ kiểm tra và chuyển khoản thủ công theo chính
                             sách hoàn vé.
                         </p>
                     </div>
 
-                    <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[var(--border-color)] bg-[var(--surface-color)] px-5 py-4">
+                    <div className="sticky bottom-0 flex justify-end gap-3 border-t border-(--border-color) bg-(--surface-color) px-5 py-4">
                         <button
                             type="button"
                             disabled={submitting}
                             onClick={() => onOpenChange(false)}
-                            className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-transparent px-5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--soft-surface-color)] disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-(--border-color) bg-transparent px-5 text-sm font-medium text-(--text-primary) transition hover:bg-(--soft-surface-color) disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Hủy
                         </button>
@@ -383,7 +412,7 @@ function RefundRequestDialog({
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--primary-color)] px-5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-10 items-center justify-center rounded-xl bg-(--primary-color) px-5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {submitting ? (
                                 <Loader2 className="mr-2 size-4 animate-spin" />
