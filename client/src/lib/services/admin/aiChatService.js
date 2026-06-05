@@ -4,12 +4,16 @@ import { getApiData } from '@/lib/http/unwrapApiSuccess';
 const resourceBase = '/api/ai-chat';
 
 function buildListSessionsParams(query) {
-  const { page = 1, limit = 20, search } = query;
+  const { page = 1, limit = 20, search, status } = query;
   const params = { page, limit };
 
   const normalizedSearch = typeof search === 'string' ? search.trim() : '';
   if (normalizedSearch) {
     params.search = normalizedSearch;
+  }
+
+  if (status && status !== 'all') {
+    params.status = status;
   }
 
   return params;
@@ -20,15 +24,43 @@ function buildListMessagesParams(query) {
   return { page, limit };
 }
 
+const CHAT_MESSAGES_PAGE_LIMIT = 100;
+
 export const aiChatService = {
   /**
-   * @param {{ page?: number, limit?: number, search?: string }} query
+   * @param {{ page?: number, limit?: number, search?: string, status?: string }} query
    * @returns {Promise<{ items: unknown[], meta: Record<string, number> }>}
    */
   listSessions: async (query = {}) => {
     const body = await axiosInstance.get(`${resourceBase}/admin/sessions`, {
       params: buildListSessionsParams(query),
     });
+
+    return getApiData(body);
+  },
+
+  /**
+   * @param {string} sessionId
+   * @param {{ message: string }} data
+   */
+  sendAdminMessage: async (sessionId, data) => {
+    const body = await axiosInstance.post(
+      `${resourceBase}/admin/sessions/${sessionId}/messages`,
+      data
+    );
+
+    return getApiData(body);
+  },
+
+  /**
+   * @param {string} sessionId
+   * @param {{ status: string }} data
+   */
+  updateSessionStatus: async (sessionId, data) => {
+    const body = await axiosInstance.patch(
+      `${resourceBase}/admin/sessions/${sessionId}/status`,
+      data
+    );
 
     return getApiData(body);
   },
@@ -44,5 +76,29 @@ export const aiChatService = {
     });
 
     return getApiData(body);
+  },
+
+  /**
+   * Most recent messages for a session (last page when paginated).
+   * @param {string} sessionId
+   * @param {{ limit?: number }} [options]
+   */
+  async fetchRecentSessionMessages(sessionId, { limit = CHAT_MESSAGES_PAGE_LIMIT } = {}) {
+    const firstPage = await this.getSessionMessages(sessionId, {
+      page: 1,
+      limit,
+    });
+
+    const totalPages = firstPage?.meta?.totalPages ?? 1;
+    if (totalPages <= 1) {
+      return firstPage?.items ?? [];
+    }
+
+    const lastPage = await this.getSessionMessages(sessionId, {
+      page: totalPages,
+      limit,
+    });
+
+    return lastPage?.items ?? [];
   },
 };

@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { prisma } from "../utils/prisma";
 import { AppError } from "../utils/AppError";
+import { isEventEnded } from "../utils/eventDate";
 import { getPaginationMetadata } from "../utils/pagination";
 import {
     CouponStatus,
@@ -12,9 +13,11 @@ import {
     NotificationType,
 } from "@prisma/client";
 import paymentService from "./payment.service";
+import { buildDirectOrderBy } from "../utils/listSort";
 import qrService from "./qr.service";
 import ticketPdfService from "./ticketPdf.service";
 import notificationService from "./notification.service";
+import { emitSeatChanged } from "../socket/emitters";
 
 class OrderService {
     private getPaidAt(order: any) {
@@ -293,6 +296,19 @@ class OrderService {
                 );
             }
 
+            const eventRecord = await tx.event.findUnique({
+                where: { id: eventIds[0] },
+                select: { startDate: true, endDate: true },
+            });
+
+            if (!eventRecord) {
+                throw new AppError("Event not found", 404);
+            }
+
+            if (isEventEnded(eventRecord)) {
+                throw new AppError("This event has already ended.", 400);
+            }
+
             const unavailableSeats = seats.filter(
                 (seat) => seat.status !== EventSeatStatus.AVAILABLE
             );
@@ -455,6 +471,10 @@ class OrderService {
             };
         });
 
+        if (result.event?.id) {
+            emitSeatChanged(result.event.id);
+        }
+
         await notificationService.createNotification({
             type: NotificationType.ORDER_CREATED,
             title: "Đơn hàng mới",
@@ -475,8 +495,11 @@ class OrderService {
         page: number;
         limit: number;
         status?: OrderStatus;
+        sortBy?: string;
+        sortOrder?: "asc" | "desc";
     }) {
-        const { page = 1, limit = 10, search, status } = query;
+        const { page = 1, limit = 10, search, status, sortBy, sortOrder } =
+            query;
         const skip = (page - 1) * limit;
 
         const where: Prisma.OrderWhereInput = {};
@@ -494,14 +517,27 @@ class OrderService {
             ];
         }
 
+        const orderBy = buildDirectOrderBy(
+            sortBy,
+            sortOrder,
+            {
+                orderCode: "orderCode",
+                customerName: "customerName",
+                customerEmail: "customerEmail",
+                totalAmount: "totalAmount",
+                paymentMethod: "paymentMethod",
+                status: "status",
+                createdAt: "createdAt",
+            },
+            { createdAt: "desc" }
+        );
+
         const [orders, total] = await Promise.all([
             prisma.order.findMany({
                 where,
                 skip,
                 take: Number(limit),
-                orderBy: {
-                    createdAt: "desc",
-                },
+                orderBy,
                 select: {
                     id: true,
                     customerEmail: true,

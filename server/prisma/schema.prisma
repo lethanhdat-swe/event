@@ -127,7 +127,7 @@ model EventArtist {
   eventId  String @map("event_id")
   artistId String @map("artist_id")
 
-  role ArtistRole?
+  role String?
 
   event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
@@ -136,13 +136,6 @@ model EventArtist {
   @@index([eventId])
   @@index([artistId])
   @@map("event_artists")
-}
-
-enum ArtistRole {
-  SINGER
-  DJ
-  GUEST
-  HOST
 }
 
 model Event {
@@ -642,6 +635,8 @@ model ChatSession {
   userId  String? @map("user_id")
   guestId String? @map("guest_id")
 
+   status ChatSessionStatus @default(ACTIVE)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -650,6 +645,7 @@ model ChatSession {
 
   @@index([userId])
   @@index([guestId])
+  @@index([status])
   @@index([createdAt])
   @@map("chat_sessions")
 }
@@ -674,8 +670,16 @@ model ChatMessage {
 }
 
 
+enum ChatSessionStatus {
+  ACTIVE
+  WAITING_ADMIN
+  ASSIGNED
+  CLOSED
+}
+
 enum ChatMessageRole {
   USER
   ASSISTANT
   SYSTEM
+  ADMIN
 }

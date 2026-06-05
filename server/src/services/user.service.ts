@@ -1,7 +1,9 @@
+import { UserRole } from "@prisma/client";
 import { prisma } from "../utils/prisma";
 import { AppError } from "../utils/AppError";
 import bcrypt from "bcryptjs";
 import { getPaginationMetadata, PaginatedResult } from "../utils/pagination";
+import { buildDirectOrderBy } from "../utils/listSort";
 
 class UserService {
     async updateMe(userId: string, data: any) {
@@ -83,13 +85,17 @@ class UserService {
     }
 
     async getAllUsers(params: {
-        page: number;
-        limit: number;
+        page?: number | string;
+        limit?: number | string;
         search?: string;
         role?: string;
         emailVerified?: string;
+        sortBy?: string;
+        sortOrder?: "asc" | "desc";
     }): Promise<PaginatedResult<any>> {
-        const { page, limit, search, role, emailVerified } = params;
+        const { search, role, emailVerified, sortBy, sortOrder } = params;
+        const page = Math.max(Number(params.page) || 1, 1);
+        const limit = Math.max(Number(params.limit) || 10, 1);
         const skip = (page - 1) * limit;
 
         const where: any = {
@@ -112,12 +118,25 @@ class UserService {
             where.isEmailVerified = false;
         }
 
+        const orderBy = buildDirectOrderBy(
+            sortBy,
+            sortOrder,
+            {
+                fullName: "fullName",
+                role: "role",
+                provider: "provider",
+                lastLoginAt: "lastLoginAt",
+                createdAt: "createdAt",
+            },
+            { createdAt: "desc" }
+        );
+
         const [users, totalItems] = await Promise.all([
             prisma.user.findMany({
                 where,
                 skip,
                 take: limit,
-                orderBy: { createdAt: "desc" },
+                orderBy,
                 select: {
                     id: true,
                     email: true,
@@ -164,7 +183,7 @@ class UserService {
         return user;
     }
 
-    async changeRole(data: { actorId: string; userId: string; role: string }) {
+    async changeRole(data: { actorId: string; userId: string; role: UserRole }) {
         if (data.userId === data.actorId) {
             throw new AppError("Cannot change your own role", 400);
         }
