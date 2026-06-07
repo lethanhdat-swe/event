@@ -6,14 +6,21 @@ import EventTickets from './components/EventTickets/EventTickets';
 import EventInformation from './components/EventInformation/EventInformation';
 import EventBooking from './components/EventBooking/EventBooking';
 import EventComment from './components/EventComment/EventComment';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
 import { eventService, ticketTypeService } from '@/lib/services/admin';
 import { commentService } from '@/lib/services/comment';
 import useEventSeatSocket from '@/hooks/useEventSeatSocket';
 import EventSeat from './components/EventSeat/EventSeat';
 import EventRelated from './components/EventRelated/EventRelated';
-import { isEventEnded } from '@/utils/eventDate';
+import {
+  canBookEvent,
+  isEventEnded,
+  isEventOngoing,
+} from '@/utils/eventDate';
+import { getErrorMessage } from '@/lib/http/apiError';
+import PublicLoadingState from '@/components/PublicLoadingState/PublicLoadingState';
+import PublicStatePanel from '@/components/PublicStatePanel/PublicStatePanel';
 
 const appendReplyToTree = (items = [], parentId, newReply) => {
   return items.map((item) => {
@@ -71,8 +78,11 @@ function EventDetail() {
   const [comments, setComments] = useState([]);
   const [relatedEvents, setRelatedEvents] = useState([]);
   const [eventSeats, setEventSeats] = useState([]);
+  const [isEventLoading, setIsEventLoading] = useState(true);
+  const [eventError, setEventError] = useState(null);
   const [isSeatsLoading, setIsSeatsLoading] = useState(false);
   const [seatsError, setSeatsError] = useState(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const addRootComment = useCallback((newComment) => {
     setComments((prev) => [newComment, ...(Array.isArray(prev) ? prev : [])]);
@@ -101,6 +111,9 @@ function EventDetail() {
   const refetchSeats = useCallback(async () => {
     if (!event?.id) return;
 
+    setIsSeatsLoading(true);
+    setSeatsError(null);
+
     try {
       const seatsPayload = await eventService.getSeats(event.id, {
         page: 1,
@@ -113,53 +126,105 @@ function EventDetail() {
           : (seatsPayload.data ?? [])
       );
     } catch (error) {
-      console.error('Failed to refetch event seats:', error);
+      setSeatsError(getErrorMessage(error) || 'Không thể tải sơ đồ ghế');
+    } finally {
+      setIsSeatsLoading(false);
     }
   }, [event?.id]);
 
   useEventSeatSocket(event?.id, refetchSeats);
 
   useEffect(() => {
-    const fetchEvent = async () => {
-      setIsSeatsLoading(true);
+    if (!slug) return undefined;
+
+    let ignore = false;
+
+    async function fetchEvent() {
+      setIsEventLoading(true);
+      setEventError(null);
       setSeatsError(null);
+      setEvent(null);
 
       try {
         const data = await eventService.getBySlug(slug);
+        if (ignore) return;
+
         setEvent(data);
+        setIsSeatsLoading(true);
 
-        const [ticketTypes, commentsData, eventRelated, seatsPayload] =
-          await Promise.all([
-            ticketTypeService.list({ page: 1, limit: 100 }),
-            commentService.list(data.id, { page: 1, limit: 100 }),
-            eventService.eventRelated(data.id),
-            eventService.getSeats(data.id, { page: 1, limit: 500 }),
-          ]);
+        try {
+          const [ticketTypes, commentsData, eventRelated, seatsPayload] =
+            await Promise.all([
+              ticketTypeService.list({ page: 1, limit: 100 }),
+              commentService.list(data.id, { page: 1, limit: 100 }),
+              eventService.eventRelated(data.id),
+              eventService.getSeats(data.id, { page: 1, limit: 500 }),
+            ]);
 
-        setTickets(ticketTypes.data ?? []);
-        setComments(commentsData ?? []);
-        setRelatedEvents(eventRelated ?? []);
-        setEventSeats(
-          Array.isArray(seatsPayload) ? seatsPayload : (seatsPayload.data ?? [])
-        );
+          if (ignore) return;
+
+          setTickets(ticketTypes.data ?? []);
+          setComments(commentsData ?? []);
+          setRelatedEvents(eventRelated ?? []);
+          setEventSeats(
+            Array.isArray(seatsPayload)
+              ? seatsPayload
+              : (seatsPayload.data ?? [])
+          );
+        } catch (secondaryError) {
+          if (!ignore) {
+            setSeatsError(
+              getErrorMessage(secondaryError) || 'Không thể tải sơ đồ ghế'
+            );
+          }
+        } finally {
+          if (!ignore) {
+            setIsSeatsLoading(false);
+          }
+        }
       } catch (error) {
-        setSeatsError(error?.message || 'Failed to load event seats');
+        if (!ignore) {
+          setEventError(getErrorMessage(error) || 'Không thể tải sự kiện');
+        }
       } finally {
-        setIsSeatsLoading(false);
+        if (!ignore) {
+          setIsEventLoading(false);
+        }
       }
-    };
-
-    if (slug) {
-      fetchEvent();
     }
-  }, [slug]);
 
-  if (!event) {
+    void fetchEvent();
+
+    return () => {
+      ignore = true;
+    };
+  }, [slug, reloadToken]);
+
+  if (isEventLoading) {
     return (
       <main className="min-h-screen bg-(--background-color) pt-(--header-height) text-(--text-primary)">
-        <div className="mx-auto flex min-h-[60vh] max-w-330 items-center justify-center px-5">
-          <div className="rounded-2xl border border-(--border-color) bg-(--card-surface-color) px-6 py-4 text-sm text-(--muted-text)">
-            Loading event...
+        <PublicLoadingState label="Đang tải sự kiện..." />
+      </main>
+    );
+  }
+
+  if (eventError || !event) {
+    return (
+      <main className="min-h-screen bg-(--background-color) pt-(--header-height) text-(--text-primary)">
+        <div className="container mx-auto max-w-2xl px-5 py-16">
+          <PublicStatePanel
+            variant="error"
+            title="Không thể tải sự kiện"
+            description={eventError || 'Sự kiện không tồn tại hoặc đã bị gỡ.'}
+            onRetry={() => setReloadToken((token) => token + 1)}
+          />
+          <div className="mt-4 text-center">
+            <Link
+              to="/events"
+              className="text-sm font-semibold text-(--primary-color) hover:underline"
+            >
+              Quay lại danh sách sự kiện
+            </Link>
           </div>
         </div>
       </main>
@@ -167,6 +232,8 @@ function EventDetail() {
   }
 
   const isEnded = isEventEnded(event);
+  const isOngoing = isEventOngoing(event);
+  const canBook = canBookEvent(event);
 
   return (
     <main className="min-h-screen overflow-hidden bg-(--background-color) pt-(--header-height) text-(--text-primary)">
@@ -177,35 +244,46 @@ function EventDetail() {
 
       <div className="container relative z-10 w-full pt-8 pb-16">
         <div className="grid grid-cols-12 gap-6 lg:items-start">
-          {/* Main top content */}
           <section className="order-1 col-span-12 space-y-5 lg:col-span-8">
-            <EventHero event={event} isEnded={isEnded} />
+            <EventHero
+              event={event}
+              isEnded={isEnded}
+              isOngoing={isOngoing}
+            />
             {isEnded ? (
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200/90">
                 Sự kiện này đã kết thúc. Bạn không thể đặt vé mới.
+              </div>
+            ) : isOngoing ? (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200/90">
+                Sự kiện đang diễn ra. Bạn không thể đặt vé mới.
               </div>
             ) : null}
             <EventInfoBar event={event} />
             <EventAbout event={event} />
           </section>
 
-          {/* Booking sidebar - mobile/tablet sẽ lên trước seat + comment */}
           <aside className="order-2 col-span-12 lg:col-span-4">
             <div className="space-y-4 lg:sticky lg:top-24">
               <EventOrganizer event={event} />
-              <EventBooking eventId={event.id} isEnded={isEnded} />
-              <EventTickets tickets={tickets} isEnded={isEnded} />
+              <EventBooking
+                eventId={event.id}
+                isEnded={isEnded}
+                isOngoing={isOngoing}
+              />
+              <EventTickets tickets={tickets} canBook={canBook} />
               <EventInformation event={event} />
             </div>
           </aside>
 
-          {/* Main bottom content */}
           <section className="order-3 col-span-12 space-y-5 lg:col-span-8">
             <EventSeat
               eventSeats={eventSeats}
               isLoading={isSeatsLoading}
               error={seatsError}
-              isEnded={isEnded}
+              canBook={canBook}
+              isOngoing={isOngoing}
+              onRetry={refetchSeats}
             />
 
             <EventComment

@@ -11,7 +11,12 @@ import OrderSummarySection from './components/OrderSummarySection/OrderSummarySe
 import PaymentActionSection from './components/PaymentActionSection/PaymentActionSection';
 import PaymentHero from './components/PaymentHero/PaymentHero';
 import PaymentMethodSection from './components/PaymentMethodSection/PaymentMethodSection';
-import { isEventEnded } from '@/utils/eventDate';
+import { validateCustomerInfo } from '@/utils/formValidation';
+import {
+    canBookEvent,
+    isEventEnded,
+    isEventOngoing,
+} from '@/utils/eventDate';
 
 const EMPTY_SELECTED_SEATS = [];
 
@@ -39,7 +44,7 @@ function groupTicketItems(selectedSeats) {
     const map = new Map();
 
     selectedSeats.forEach((seat) => {
-        const ticketName = seat.ticketType?.name ?? 'Ticket';
+        const ticketName = seat.ticketType?.name ?? 'Vé';
         const ticketColor = seat.ticketType?.color ?? 'var(--primary-color)';
         const price = Number(seat.ticketType?.price ?? 0);
         const key = `${ticketName}-${price}`;
@@ -108,8 +113,10 @@ function Payment() {
         ? Math.max(subtotal - totalFromOrder, 0)
         : previewDiscountAmount;
     const isEnded = isEventEnded(event);
+    const isOngoing = isEventOngoing(event);
+    const canBook = canBookEvent(event);
     const canSubmit =
-        selectedSeatIds.length > 0 && !createdOrder && !isEnded;
+        selectedSeatIds.length > 0 && !createdOrder && canBook;
     const backTo = event?.id ? `/booking?eventId=${event.id}` : '/booking';
 
     const handleCouponCodeChange = (value) => {
@@ -164,6 +171,13 @@ function Payment() {
             return;
         }
 
+        if (isOngoing) {
+            setSubmitError(
+                'Sự kiện đang diễn ra. Bạn không thể đặt vé mới.'
+            );
+            return;
+        }
+
         if (selectedSeatIds.length === 0) {
             setSubmitError(
                 'Vui lòng chọn ít nhất một ghế trước khi thanh toán.'
@@ -175,6 +189,17 @@ function Payment() {
             setSubmitError(
                 'Vui lòng cập nhật đầy đủ họ tên, email và số điện thoại.'
             );
+            return;
+        }
+
+        const customerErrors = validateCustomerInfo({
+            name: customerInfo.name,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+        });
+        const customerErrorMessages = Object.values(customerErrors);
+        if (customerErrorMessages.length > 0) {
+            setSubmitError(customerErrorMessages.join(' '));
             return;
         }
 
@@ -221,6 +246,10 @@ function Payment() {
             {isEnded ? (
                 <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200/90">
                     Sự kiện này đã kết thúc. Bạn không thể đặt vé mới.
+                </div>
+            ) : isOngoing ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200/90">
+                    Sự kiện đang diễn ra. Bạn không thể đặt vé mới.
                 </div>
             ) : null}
             {selectedSeatIds.length === 0 ? (

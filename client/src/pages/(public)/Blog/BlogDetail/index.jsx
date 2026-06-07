@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { images } from '@/assets';
+import PublicStatePanel from '@/components/PublicStatePanel/PublicStatePanel';
 import { parseApiError } from '@/lib/http/apiError';
 import { blogService } from '@/lib/services/blog/blogService';
 import { resolvePublicAssetUrl } from '@/lib/url/resolvePublicAssetUrl';
@@ -9,6 +10,7 @@ import BlogMeta from './components/BlogMeta/BlogMeta';
 import BlogTitle from './components/BlogTitle/BlogTitle';
 import BlogContent from './components/BlogContent/BlogContent';
 import BlogRelated from './components/BlogRelated/BlogRelated';
+import { filterPublishedBlogs } from '../blogUtils';
 
 function formatBlogDate(value) {
     if (!value) return '';
@@ -23,7 +25,7 @@ function formatBlogDate(value) {
 function normalizeBlog(blog) {
     return {
         ...blog,
-        category: blog.category?.name ?? 'Uncategorized',
+        category: blog.category?.name ?? 'Chưa phân loại',
         date: formatBlogDate(blog.publishedAt ?? blog.createdAt),
         excerpt: blog.excerpt ?? '',
         image:
@@ -44,6 +46,7 @@ function BlogDetail() {
     const [relatedBlogs, setRelatedBlogs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [reloadToken, setReloadToken] = useState(0);
 
     useEffect(() => {
         let ignore = false;
@@ -62,7 +65,7 @@ function BlogDetail() {
 
                 setBlog(normalizeBlog(blogPayload));
                 setRelatedBlogs(
-                    (listPayload.items ?? [])
+                    filterPublishedBlogs(listPayload.items ?? [])
                         .filter((item) => item.id !== blogPayload.id)
                         .slice(0, 2)
                         .map(normalizeBlog)
@@ -79,7 +82,11 @@ function BlogDetail() {
         return () => {
             ignore = true;
         };
-    }, [id]);
+    }, [id, reloadToken]);
+
+    const handleRetry = () => {
+        setReloadToken((token) => token + 1);
+    };
 
     if (isLoading) {
         return <BlogDetailSkeleton />;
@@ -87,8 +94,15 @@ function BlogDetail() {
 
     if (error || !blog) {
         return (
-            <div className="pt-(--header-height) p-10 text-red-400">
-                {error || 'Blog not found'}
+            <div className="pt-(--header-height) container py-10">
+                <BackButton />
+                <PublicStatePanel
+                    variant="error"
+                    title={error ? undefined : 'Không tìm thấy bài viết'}
+                    description={error ?? 'Bài viết không tồn tại hoặc đã bị gỡ.'}
+                    onRetry={handleRetry}
+                    className="mt-8"
+                />
             </div>
         );
     }
